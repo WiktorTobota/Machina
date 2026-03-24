@@ -35,3 +35,7 @@ class MSSQL():
 
     def run_query(self, query:str):
         return self.cursor.execute(query)
+
+if __name__ == '__main__':
+    sql = MSSQL()
+    sql.connect_db()

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Aplikacji - Fullscreen</title>
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+
+    <div class="dashboard-container">
+        <nav class="top-nav">
+            <div class="nav-tab active">DASHBOARD</div>
+            <div class="nav-tab">ZADANIA</div>
+            <div class="nav-tab">NOTATKI</div>
+            <div class="nav-tab">BAZA WIEDZY</div>
+            <div class="nav-tab">CHAT</div>
+        </nav>
+
+        <div class="content-area">
+            
+            <div class="left-column">
+                
+                <div class="panel task-panel">
+                    <div class="panel-header">
+                        <b>ZADANIA</b>
+                        <span style="cursor:pointer; font-size: 20px;">+</span>
+                    </div>
+                    <div class="task-list">
+                        <div class="task-item" data-status="pending">
+                            <div class="task-info">
+                                <div class="task-icon" style="background: rgba(0,255,127,0.2); color: var(--accent-green);">✏️</div>
+                                <span>Projektowanie UI</span>
+                            </div>
+                            <div class="task-meta">
+                                <span>18 Mar</span>
+                                <div class="dot" style="background-color: var(--accent-green);"></div>
+                            </div>
+                        </div>
+                        <div class="task-item completed" data-status="completed">
+                            <div class="task-info">
+                                <div class="task-icon" style="background: rgba(59,130,246,0.2); color: var(--color-blue);">👥</div>
+                                <span>Spotkanie Zespołu</span>
+                            </div>
+                            <div class="task-meta">
+                                <span>20 Mar</span>
+                                <div class="dot" style="background-color: var(--color-blue);"></div>
+                            </div>
+                        </div>
+                        <div class="task-item completed" data-status="completed">
+                            <div class="task-info">
+                                <div class="task-icon" style="background: rgba(234,179,8,0.2); color: var(--color-yellow);">📊</div>
+                                <span>Raport Kwartalny</span>
+                            </div>
+                            <div class="task-meta">
+                                <span>26 Mar</span>
+                                <div class="dot" style="background-color: var(--color-yellow);"></div>
+                            </div>
+                        </div>
+                        <div class="task-item" data-status="pending">
+                            <div class="task-info">
+                                <div class="task-icon" style="background: rgba(249,115,22,0.2); color: var(--color-orange);">🚀</div>
+                                <span>Premiera Produktu</span>
+                            </div>
+                            <div class="task-meta">
+                                <span>31 Mar</span>
+                                <div class="dot" style="background-color: var(--color-orange);"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel summary-panel">
+                    <div class="panel-header">
+                        <b>PODSUMOWANIE DNIA</b>
+                    </div>
+                    <div class="summary-stats">
+                        <div class="stat-row">
+                            <span id="task-counter">Wykonane: 2 / 4</span>
+                            <div class="progress-bar-container">
+                                <div class="progress-bar-fill" id="task-progress"></div>
+                            </div>
+                        </div>
+                        <div class="stat-row">
+                            <span style="color: var(--text-muted)">Średni czas:</span>
+                            <span>45 min</span>
+                        </div>
+                        <div class="stat-row">
+                            <span style="color: var(--text-muted)">Priorytety jutra:</span>
+                            <span>3</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="panel calendar-panel">
+                <div class="panel-header">
+                    <b>KALENDARZ</b>
+                </div>
+                <div class="calendar-header">
+                    <div class="calendar-title" id="month-year-display">MARZEC 2026</div>
+                    <div class="nav-arrows">
+                        <span id="prev-month">&lt;</span>
+                        <span id="next-month">&gt;</span>
+                    </div>
+                </div>
+
+                <div class="calendar-container">
+                    <div class="day-names">
+                        <div>Pn</div><div>Wt</div><div>Śr</div><div>Cz</div><div>Pt</div><div>So</div><div>Nd</div>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid">
+                        </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

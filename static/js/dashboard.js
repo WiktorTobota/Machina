@@ -10,7 +10,7 @@ tabs.forEach(tab => {
 });
 
 // --- 2. ZMIENNE DO KALENDARZA ---
-const monthNames = ["STYCZEÑ", "LUTY", "MARZEC", "KWIECIEÑ", "MAJ", "CZERWIEC", "LIPIEC", "SIERPIEÑ", "WRZESIEÑ", "PADZIERNIK", "LISTOPAD", "GRUDZIEÑ"];
+const monthNames = ["STYCZEN", "LUTY", "MARZEC", "KWIECIEN", "MAJ", "CZERWIEC", "LIPIEC", "SIERPIEN", "WRZESIEN", "PADZIERNIK", "LISTOPAD", "GRUDZIEN"];
 
 let currentMonth = 0; 
 let currentYear = 0;
@@ -24,7 +24,7 @@ let actualTodayYear = 0;
 // --- 3. POBIERANIE DANYCH ---
 // Symulujemy pobranie Twojego nowego, prostego formatu danych
 async function fetchTasksForCurrentView() {
-    // W przysz³oœci tu wpiszesz œcie¿kê do swojego Pythona, np:
+    // W przysz³osci tu wpiszesz sciezkê do swojego Pythona, np:
     // const response = await fetch(`/api/tasks?month=${currentMonth+1}&year=${currentYear}`);
     // const data = await response.json();
     
@@ -41,7 +41,7 @@ async function fetchTasksForCurrentView() {
 
 async function fetchDateFromAPI() {
     try {
-        // W przysz³oœci pobierzesz datê z API: const response = await fetch('/api/current-date');
+        // W przysz³osci pobierzesz datê z API: const response = await fetch('/api/current-date');
         // Na ten moment ustawiamy datê rêcznie na dzisiaj dla testów
         const today = new Date();
         actualTodayDay = today.getDate();
@@ -86,66 +86,97 @@ function renderCalendar() {
         }
 
         // --- AUTOMATYCZNE KROPKI ---
-        // Sprawdzamy, czy w pobranych zadaniach s¹ jakieœ na ten konkretny dzieñ
+        // Sprawdzamy, czy w pobranych zadaniach s¹ jakies na ten konkretny dzien
         const tasksForThisDay = currentMonthTasks.filter(task => {
             const taskDate = new Date(task.dueDate);
             return taskDate.getDate() === i && taskDate.getMonth() === currentMonth && taskDate.getFullYear() === currentYear;
         });
 
         if (tasksForThisDay.length > 0) {
-            // Tworzymy pojemnik na kropki, ¿eby wyœwietla³y siê obok siebie, jeœli jest kilka zadañ
+            // Tworzymy pojemnik na kropki, zeby wyswietla³y siê obok siebie, jesli jest kilka zadan
             const dotsWrapper = document.createElement('div');
             dotsWrapper.style.position = 'absolute';
             dotsWrapper.style.bottom = '4px';
             dotsWrapper.style.display = 'flex';
             dotsWrapper.style.gap = '3px';
             
-            // Wyci¹gamy unikalne kolory, ¿eby nie rysowaæ 5 takich samych kropek
+            // Wyci¹gamy unikalne kolory, zeby nie rysowaæ 5 takich samych kropek
             const uniqueColors = [...new Set(tasksForThisDay.map(t => t.colorVar))];
             uniqueColors.forEach(color => {
                 const dot = document.createElement('div');
                 dot.className = 'day-dot';
-                dot.style.position = 'static'; // Nadpisujemy to, co masz w CSS, ¿eby kropki uk³ada³y siê w rzêdzie
+                dot.style.position = 'static'; // Nadpisujemy to, co masz w CSS, zeby kropki uk³ada³y siê w rzêdzie
                 dot.style.backgroundColor = color;
                 dotsWrapper.appendChild(dot);
             });
             dayDiv.appendChild(dotsWrapper);
         }
 
-        // Klikniêcie w dzieñ na kalendarzu
+        // Klikniêcie w dzien na kalendarzu
         dayDiv.addEventListener('click', function() {
             selectedDay = i; 
             selectedMonth = currentMonth;
             selectedYear = currentYear;
             
-            renderCalendar(); // Odœwie¿amy kalendarz (¿eby podœwietliæ nowy dzieñ)
-            updateTaskList(); // Odœwie¿amy listê zadañ po lewej stronie
+            renderCalendar(); // Odswiezamy kalendarz (zeby podswietliæ nowy dzien)
+            updateTaskList(); // Odswiezamy listê zadan po lewej stronie
         });
 
         grid.appendChild(dayDiv);
     }
 }
 
-// --- 5. OBS£UGA LISTY ZADAÑ ---
+// --- 5. OBS£UGA LISTY ZADAN ---
 function updateTaskList() {
     const listDiv = document.querySelector('.task-list');
-    listDiv.innerHTML = ''; // Czyœcimy obecne zadania na ekranie
-    
-    // Wybieramy z listy tylko te zadania, które pasuj¹ do klikniêtego dnia
-    const tasksForSelectedDay = currentMonthTasks.filter(task => {
+    listDiv.innerHTML = '';
+
+    // Szukamy zadan dla wybranego dnia
+    let tasksForSelectedDay = currentMonthTasks.filter(task => {
         const d = new Date(task.dueDate);
         return d.getDate() === selectedDay && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
     });
 
+    // Jesli brak zadan — szukamy najblizszego kolejnego dnia z zadaniami
+    let displayDay = selectedDay;
+    if (tasksForSelectedDay.length === 0) {
+        const selectedDate = new Date(selectedYear, selectedMonth, selectedDay);
+
+        // Sortujemy zadania rosn¹co po dacie i szukamy pierwszego po wybranym dniu
+        const futureTasks = currentMonthTasks
+            .map(task => ({ ...task, dateObj: new Date(task.dueDate) }))
+            .filter(task => task.dateObj >= selectedDate)
+            .sort((a, b) => a.dateObj - b.dateObj);
+
+        if (futureTasks.length > 0) {
+            const nearestDate = futureTasks[0].dateObj;
+            displayDay = nearestDate.getDate();
+
+            tasksForSelectedDay = currentMonthTasks.filter(task => {
+                const d = new Date(task.dueDate);
+                return d.getDate() === nearestDate.getDate() &&
+                       d.getMonth() === nearestDate.getMonth() &&
+                       d.getFullYear() === nearestDate.getFullYear();
+            });
+        }
+    }
+
+    // Opcjonalny nag³ówek — zeby user wiedzia³ sk¹d s¹ te zadania
+    if (displayDay !== selectedDay && tasksForSelectedDay.length > 0) {
+        listDiv.insertAdjacentHTML('beforeend', `
+            <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">
+                Najblizsze zadania: ${displayDay} ${monthNames[selectedMonth]}
+            </div>
+        `);
+    }
+
     tasksForSelectedDay.forEach(task => {
         const statusClass = task.isCompleted ? 'completed' : '';
-        const statusData = task.isCompleted ? 'completed' : 'pending';
-        
-        // Formatowanie daty, np. "29 Mar"
-        const dateObj = new Date(task.dueDate);
+        const statusData  = task.isCompleted ? 'completed' : 'pending';
+        const dateObj     = new Date(task.dueDate);
         const formattedDate = dateObj.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
 
-        const taskHTML = `
+        listDiv.insertAdjacentHTML('beforeend', `
             <div class="task-item ${statusClass}" data-status="${statusData}" data-id="${task.id}">
                 <div class="task-info">
                     <div class="task-icon" style="background: ${task.colorVar}; color: #121212; opacity: 0.9;">??</div>
@@ -156,11 +187,9 @@ function updateTaskList() {
                     <div class="dot" style="background-color: ${task.colorVar};"></div>
                 </div>
             </div>
-        `;
-        listDiv.insertAdjacentHTML('beforeend', taskHTML);
+        `);
     });
 
-    // Podpinamy klikanie po wygenerowaniu nowych zadañ
     attachTaskClickEvents();
     updateProgress();
 }

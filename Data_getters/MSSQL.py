@@ -1,7 +1,7 @@
 import pyodbc
 import configparser
 import logging
-
+import pandas as pd
 
 #config parse to read it 
 config = configparser.ConfigParser()
@@ -34,7 +34,7 @@ class MSSQL():
             logging.error(f'MSSQL not Connected with {e}')
 
     def run_query(self, query:str):
-        return self.cursor.execute(query)
+        return pd.read_sql(query, self.cursor.connection)
 
 if __name__ == '__main__':
     sql = MSSQL()

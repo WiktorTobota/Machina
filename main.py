@@ -1,6 +1,7 @@
 import datetime
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 from utils import get_current_date_dict
+from Data_getters.dashboard_tasks import get_task_for_dashboard
 
 app = Flask(__name__)
 
@@ -14,9 +15,17 @@ def get_current_date():
     data = get_current_date_dict()
     return jsonify(data)
 
+@app.route('/api/tasks', methods=['GET'])
+def get_current_tasks():
 
+    month = request.args.get('month', type=int)
+    year = request.args.get('year', type=int)
 
+    if not month or not year:
+        return jsonify({"error": "Brak parametrow month lub year"}), 400
+    data = get_task_for_dashboard(year, month)
 
+    return jsonify(data)
 
 
 if __name__ == '__main__':

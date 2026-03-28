@@ -1,4 +1,6 @@
-// --- 1. OBSLUGA ZAKLADEK ---
+// --- 1. ZARZ•DZANIE STANEM I ZAK£ADKAMI ---
+let currentMonthTasks = []; // Tu bÍdziemy trzymaÊ zadania na dany miesiπc
+
 const tabs = document.querySelectorAll('.nav-tab');
 tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -7,44 +9,59 @@ tabs.forEach(tab => {
     });
 });
 
-// --- 2. OBSLUGA ZADAN I PASKA POSTEPU ---
-const taskItems = document.querySelectorAll('.task-item');
-const totalTasks = taskItems.length;
-
-function updateProgress() {
-    const completedCount = document.querySelectorAll('.task-item.completed').length;
-    document.getElementById('task-counter').textContent = `Wykonane: ${completedCount} / ${totalTasks}`;
-    
-    const percentage = (completedCount / totalTasks) * 100;
-    document.getElementById('task-progress').style.width = `${percentage}%`;
-}
-
-taskItems.forEach(item => {
-    item.addEventListener('click', function() {
-        this.classList.toggle('completed');
-        updateProgress();
-    });
-});
-
-updateProgress();
-
-// --- 3. GENEROWANIE KALENDARZA ---
+// --- 2. ZMIENNE DO KALENDARZA ---
 const monthNames = ["STYCZE—", "LUTY", "MARZEC", "KWIECIE—", "MAJ", "CZERWIEC", "LIPIEC", "SIERPIE—", "WRZESIE—", "PAèDZIERNIK", "LISTOPAD", "GRUDZIE—"];
 
-// Zmienne do nawigacji (to co widzimy)
 let currentMonth = 0; 
 let currentYear = 0;
-
-// Zmienne do podúwietlenia (to co jest wybrane)
 let selectedDay = 0;
 let selectedMonth = 0;
 let selectedYear = 0;
-
-// NOWOå∆: Twarda pamiÍÊ o tym, jaki jest dzisiaj dzieÒ
 let actualTodayDay = 0;
 let actualTodayMonth = 0;
 let actualTodayYear = 0;
 
+// --- 3. POBIERANIE DANYCH ---
+// Symulujemy pobranie Twojego nowego, prostego formatu danych
+async function fetchTasksForCurrentView() {
+    // W przysz≥oúci tu wpiszesz úcieøkÍ do swojego Pythona, np:
+    // const response = await fetch(`/api/tasks?month=${currentMonth+1}&year=${currentYear}`);
+    // const data = await response.json();
+    
+    // Na razie ≥adujemy Twoje przyk≥adowe dane:
+    currentMonthTasks = [
+        { id: 1, title: "Projektowanie UI", dueDate: "2026-03-18T10:00:00", isCompleted: true, colorVar: "var(--accent-green)" },
+        { id: 2, title: "Napisac wiadomosc", dueDate: "2026-03-29T12:00:00", isCompleted: false, colorVar: "var(--color-blue)" },
+        { id: 3, title: "Inne zadanie", dueDate: "2026-03-29T15:00:00", isCompleted: false, colorVar: "var(--color-yellow)" }
+    ];
+
+    renderCalendar();
+    updateTaskList();
+}
+
+async function fetchDateFromAPI() {
+    try {
+        // W przysz≥oúci pobierzesz datÍ z API: const response = await fetch('/api/current-date');
+        // Na ten moment ustawiamy datÍ rÍcznie na dzisiaj dla testÛw
+        const today = new Date();
+        actualTodayDay = today.getDate();
+        actualTodayMonth = today.getMonth();
+        actualTodayYear = today.getFullYear();
+
+        currentMonth = actualTodayMonth;
+        currentYear = actualTodayYear;
+        selectedDay = actualTodayDay;
+        selectedMonth = actualTodayMonth;
+        selectedYear = actualTodayYear;
+        
+        // Zamiast renderowaÊ od razu, najpierw pobieramy zadania
+        fetchTasksForCurrentView();
+    } catch (error) {
+        console.error("B≥πd pobierania daty:", error);
+    }
+}
+
+// --- 4. RYSOWANIE KALENDARZA I KROPEK ---
 function renderCalendar() {
     document.getElementById('month-year-display').textContent = `${monthNames[currentMonth]} ${currentYear}`;
     const grid = document.getElementById('calendar-grid');
@@ -64,89 +81,132 @@ function renderCalendar() {
         dayDiv.className = 'calendar-day';
         dayDiv.textContent = i;
 
-        // Podúwietlamy tylko wybrany dzieÒ
         if (i === selectedDay && currentMonth === selectedMonth && currentYear === selectedYear) {
             dayDiv.classList.add('active'); 
         }
 
-        // Przyk≥adowe zadania (kropki)
-        if (i === 18 || i === 25) dayDiv.innerHTML += `<div class="day-dot" style="background-color: var(--accent-green);"></div>`;
-        if (i === 20) dayDiv.innerHTML += `<div class="day-dot" style="background-color: var(--color-blue);"></div>`;
-        if (i === 26) dayDiv.innerHTML += `<div class="day-dot" style="background-color: var(--color-yellow);"></div>`;
-        if (i === 31) dayDiv.innerHTML += `<div class="day-dot" style="background-color: var(--color-orange);"></div>`;
+        // --- AUTOMATYCZNE KROPKI ---
+        // Sprawdzamy, czy w pobranych zadaniach sπ jakieú na ten konkretny dzieÒ
+        const tasksForThisDay = currentMonthTasks.filter(task => {
+            const taskDate = new Date(task.dueDate);
+            return taskDate.getDate() === i && taskDate.getMonth() === currentMonth && taskDate.getFullYear() === currentYear;
+        });
 
-        // Co siÍ dzieje przy klikniÍciu w dzieÒ:
-        dayDiv.addEventListener('click', function() {
-            const currentActive = document.querySelector('.calendar-day.active');
-            if(currentActive) currentActive.classList.remove('active');
+        if (tasksForThisDay.length > 0) {
+            // Tworzymy pojemnik na kropki, øeby wyúwietla≥y siÍ obok siebie, jeúli jest kilka zadaÒ
+            const dotsWrapper = document.createElement('div');
+            dotsWrapper.style.position = 'absolute';
+            dotsWrapper.style.bottom = '4px';
+            dotsWrapper.style.display = 'flex';
+            dotsWrapper.style.gap = '3px';
             
-            this.classList.add('active');
+            // Wyciπgamy unikalne kolory, øeby nie rysowaÊ 5 takich samych kropek
+            const uniqueColors = [...new Set(tasksForThisDay.map(t => t.colorVar))];
+            uniqueColors.forEach(color => {
+                const dot = document.createElement('div');
+                dot.className = 'day-dot';
+                dot.style.position = 'static'; // Nadpisujemy to, co masz w CSS, øeby kropki uk≥ada≥y siÍ w rzÍdzie
+                dot.style.backgroundColor = color;
+                dotsWrapper.appendChild(dot);
+            });
+            dayDiv.appendChild(dotsWrapper);
+        }
 
+        // KlikniÍcie w dzieÒ na kalendarzu
+        dayDiv.addEventListener('click', function() {
             selectedDay = i; 
             selectedMonth = currentMonth;
             selectedYear = currentYear;
             
-            console.log("Wybrano nowy dzieÒ:", selectedDay, selectedMonth, selectedYear);
+            renderCalendar(); // Odúwieøamy kalendarz (øeby podúwietliÊ nowy dzieÒ)
+            updateTaskList(); // Odúwieøamy listÍ zadaÒ po lewej stronie
         });
 
         grid.appendChild(dayDiv);
     }
 }
 
-async function fetchDateFromAPI() {
-    try {
-        const response = await fetch('/api/current-date');
-        const data = await response.json();
-        
-        // NOWOå∆: Zapisujemy na sztywno, co zwrÛci≥ serwer
-        actualTodayDay = data.day;
-        actualTodayMonth = data.month;
-        actualTodayYear = data.year;
+// --- 5. OBS£UGA LISTY ZADA— ---
+function updateTaskList() {
+    const listDiv = document.querySelector('.task-list');
+    listDiv.innerHTML = ''; // Czyúcimy obecne zadania na ekranie
+    
+    // Wybieramy z listy tylko te zadania, ktÛre pasujπ do klikniÍtego dnia
+    const tasksForSelectedDay = currentMonthTasks.filter(task => {
+        const d = new Date(task.dueDate);
+        return d.getDate() === selectedDay && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+    });
 
-        // Ustawiamy widok
-        currentMonth = data.month;
-        currentYear = data.year;
-
-        // Ustawiamy domyúlny wybÛr na dzisiaj
-        selectedDay = data.day;
-        selectedMonth = data.month;
-        selectedYear = data.year;
+    tasksForSelectedDay.forEach(task => {
+        const statusClass = task.isCompleted ? 'completed' : '';
+        const statusData = task.isCompleted ? 'completed' : 'pending';
         
-        renderCalendar();
-    } catch (error) {
-        console.error("B≥πd pobierania daty z API:", error);
-    }
+        // Formatowanie daty, np. "29 Mar"
+        const dateObj = new Date(task.dueDate);
+        const formattedDate = dateObj.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
+
+        const taskHTML = `
+            <div class="task-item ${statusClass}" data-status="${statusData}" data-id="${task.id}">
+                <div class="task-info">
+                    <div class="task-icon" style="background: ${task.colorVar}; color: #121212; opacity: 0.9;">??</div>
+                    <span>${task.title}</span>
+                </div>
+                <div class="task-meta">
+                    <span>${formattedDate}</span>
+                    <div class="dot" style="background-color: ${task.colorVar};"></div>
+                </div>
+            </div>
+        `;
+        listDiv.insertAdjacentHTML('beforeend', taskHTML);
+    });
+
+    // Podpinamy klikanie po wygenerowaniu nowych zadaÒ
+    attachTaskClickEvents();
+    updateProgress();
 }
 
+function attachTaskClickEvents() {
+    const items = document.querySelectorAll('.task-item');
+    items.forEach(item => {
+        item.addEventListener('click', function() {
+            this.classList.toggle('completed');
+            updateProgress();
+        });
+    });
+}
+
+function updateProgress() {
+    const taskItems = document.querySelectorAll('.task-item');
+    const totalTasks = taskItems.length;
+    const completedCount = document.querySelectorAll('.task-item.completed').length;
+    
+    document.getElementById('task-counter').textContent = `Wykonane: ${completedCount} / ${totalTasks}`;
+    const percentage = totalTasks === 0 ? 0 : (completedCount / totalTasks) * 100;
+    document.getElementById('task-progress').style.width = `${percentage}%`;
+}
+
+// --- 6. PRZYCISKI ZMIANY MIESI•CA ---
 document.getElementById('prev-month').addEventListener('click', () => {
     currentMonth--;
-    if(currentMonth < 0) {
-        currentMonth = 11;
-        currentYear--;
-    }
+    if(currentMonth < 0) { currentMonth = 11; currentYear--; }
     
-    // NOWOå∆: Resetujemy wybÛr do obiektywnego "dzisiaj"
     selectedDay = actualTodayDay;
     selectedMonth = actualTodayMonth;
     selectedYear = actualTodayYear;
     
-    renderCalendar();
+    fetchTasksForCurrentView(); // Pobieramy zadania dla nowego miesiπca
 });
 
 document.getElementById('next-month').addEventListener('click', () => {
     currentMonth++;
-    if(currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
-    }
+    if(currentMonth > 11) { currentMonth = 0; currentYear++; }
 
-    // NOWOå∆: Resetujemy wybÛr do obiektywnego "dzisiaj"
     selectedDay = actualTodayDay;
     selectedMonth = actualTodayMonth;
     selectedYear = actualTodayYear;
 
-    renderCalendar();
+    fetchTasksForCurrentView(); // Pobieramy zadania dla nowego miesiπca
 });
 
-// Uruchamiamy pobieranie daty przy starcie aplikacji
+// START APLIKACJI
 fetchDateFromAPI();

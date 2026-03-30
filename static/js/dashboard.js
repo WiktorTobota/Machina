@@ -24,19 +24,38 @@ let actualTodayYear = 0;
 // --- 3. POBIERANIE DANYCH ---
 // Symulujemy pobranie Twojego nowego, prostego formatu danych
 async function fetchTasksForCurrentView() {
-    // W przysz³osci tu wpiszesz sciezkê do swojego Pythona, np:
-    // const response = await fetch(`/api/tasks?month=${currentMonth+1}&year=${currentYear}`);
-    // const data = await response.json();
-    
-    // Na razie ³adujemy Twoje przyk³adowe dane:
-    currentMonthTasks = [
-        { id: 1, title: "Projektowanie UI", dueDate: "2026-03-18T10:00:00", isCompleted: true, colorVar: "var(--accent-green)" },
-        { id: 2, title: "Napisac wiadomosc", dueDate: "2026-03-29T12:00:00", isCompleted: false, colorVar: "var(--color-blue)" },
-        { id: 3, title: "Inne zadanie", dueDate: "2026-03-29T15:00:00", isCompleted: false, colorVar: "var(--color-yellow)" }
-    ];
+    try {
+        const response = await fetch(`/api/tasks?month=${currentMonth+1}&year=${currentYear}`);
+        
+        if (!response.ok) {
+            throw new Error(`B³¹d HTTP: ${response.status}`);
+        }
 
-    renderCalendar();
-    updateTaskList();
+        let data = await response.json();
+        
+        // ZABEZPIECZENIE: Rêczne parsowanie, jeœli z backendu przypadkiem przyszed³ tekst
+        if (typeof data === 'string') {
+            console.warn("Otrzymano string zamiast obiektu. Parsujê rêcznie.");
+            data = JSON.parse(data);
+        }
+
+        // ZABEZPIECZENIE: Upewniamy siê, ¿e to tablica, by unikn¹æ b³êdu metody .filter()
+        if (Array.isArray(data)) {
+            currentMonthTasks = data;
+        } else {
+            console.error("API nie zwróci³o tablicy!", data);
+            currentMonthTasks = []; // Fallback na pust¹ tablicê
+        }
+
+    } catch (error) {
+        console.error("B³¹d podczas pobierania zadañ:", error);
+        currentMonthTasks = []; // Zabezpieczenie na wypadek awarii sieci
+    } finally {
+        // Blok finally wykonuje siê ZAWSZE. 
+        // Dziêki temu kalendarz narysuje siê (bez zadañ) nawet, gdy serwer le¿y.
+        renderCalendar();
+        updateTaskList();
+    }
 }
 
 async function fetchDateFromAPI() {
@@ -236,6 +255,239 @@ document.getElementById('next-month').addEventListener('click', () => {
 
     fetchTasksForCurrentView(); // Pobieramy zadania dla nowego miesi¹ca
 });
+
+// Funkcja czyszcz¹ca stan formularza
+function resetTaskForm() {
+    document.getElementById('task-title').value = '';
+    document.getElementById('task-desc').value = '';
+    
+    // Reset daty
+    const dateBtn = document.getElementById('date-picker-btn');
+    dateBtn.textContent = 'Wybierz datê...';
+    dateBtn.style.color = 'var(--text-main)';
+    
+    // Reset selectów do pierwszej domyœlnej opcji z bazy
+    const statusSelect = document.getElementById('task-status');
+    const tagSelect = document.getElementById('task-tag');
+    if (statusSelect.options.length > 0) statusSelect.selectedIndex = 0;
+    if (tagSelect.options.length > 0) tagSelect.selectedIndex = 0;
+}
+
+
+// --- 7. OBS£UGA OKIENKA (POP-UP) I MINI KALENDARZA ---
+const modal = document.getElementById('task-modal');
+const openBtn = document.getElementById('add-task-btn');
+const closeBtn = document.getElementById('close-modal-btn');
+const datePickerBtn = document.getElementById('date-picker-btn');
+const miniCalendar = document.getElementById('mini-calendar-container');
+
+// Otwieranie okienka
+// Otwieranie okienka i leniwe ³adowanie s³owników (Lazy Loading)
+openBtn.addEventListener('click', async () => {
+    modal.classList.remove('hidden');
+    
+    // Zmieniamy kursor na czas ³adowania, ¿eby user wiedzia³, ¿e coœ siê dzieje
+    document.body.style.cursor = 'wait';
+    await fetchFormDictionaries();
+    document.body.style.cursor = 'default';
+});
+
+// Zamykanie okienka (krzy¿ykiem)
+closeBtn.addEventListener('click', () => {
+    modal.classList.add('hidden');
+    miniCalendar.classList.add('hidden'); 
+    resetTaskForm(); // Czyœcimy stan formularza
+});
+
+// Zamykanie okienka po klikniêciu w ciemne t³o poza nim
+modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+        modal.classList.add('hidden');
+        miniCalendar.classList.add('hidden');
+        resetTaskForm(); // Czyœcimy stan formularza
+    }
+});
+
+// Chowanie mini-kalendarza po klikniêciu poza jego obszar (utrata "aktywnoœci")
+document.addEventListener('click', (event) => {
+    if (!miniCalendar.classList.contains('hidden')) {
+        if (!miniCalendar.contains(event.target) && event.target !== datePickerBtn) {
+            miniCalendar.classList.add('hidden');
+        }
+    }
+});
+
+// Zmienne tylko dla ma³ego kalendarza, ¿eby nie psuæ g³ównego
+let miniMonth = new Date().getMonth();
+let miniYear = new Date().getFullYear();
+
+// Pokazywanie mini kalendarza po klikniêciu w pole daty
+datePickerBtn.addEventListener('click', () => {
+    miniCalendar.classList.toggle('hidden');
+    // Ustawiamy ma³y kalendarz na aktualny miesi¹c g³ównego widoku
+    miniMonth = currentMonth;
+    miniYear = currentYear;
+    renderMiniCalendar();
+});
+
+// Funkcja rysuj¹ca ma³y kalendarzyk
+function renderMiniCalendar() {
+    document.getElementById('mini-month-year').textContent = `${monthNames[miniMonth]} ${miniYear}`;
+    const grid = document.getElementById('mini-calendar-grid');
+    grid.innerHTML = '';
+
+    const daysInMonth = new Date(miniYear, miniMonth + 1, 0).getDate();
+    let firstDayIndex = new Date(miniYear, miniMonth, 1).getDay();
+    if (firstDayIndex === 0) firstDayIndex = 7;
+
+    for(let i = 1; i < firstDayIndex; i++) {
+        grid.appendChild(document.createElement('div'));
+    }
+
+    for(let i = 1; i <= daysInMonth; i++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day';
+        dayDiv.textContent = i;
+        
+        // Zmniejszamy dni, by pasowa³y do ma³ego okienka
+        dayDiv.style.minHeight = '30px'; 
+        dayDiv.style.fontSize = '14px';
+
+        // Co siê dzieje po wybraniu dnia
+        dayDiv.addEventListener('click', () => {
+            const formattedDate = `${i} ${monthNames[miniMonth].toLowerCase()} ${miniYear}`;
+            datePickerBtn.textContent = formattedDate;
+            datePickerBtn.style.color = "var(--accent-green)";
+            miniCalendar.classList.add('hidden');
+        });
+
+        grid.appendChild(dayDiv);
+    }
+}
+
+// Strza³ki w mini kalendarzu
+document.getElementById('mini-prev').addEventListener('click', () => {
+    miniMonth--;
+    if(miniMonth < 0) { miniMonth = 11; miniYear--; }
+    renderMiniCalendar();
+});
+
+document.getElementById('mini-next').addEventListener('click', () => {
+    miniMonth++;
+    if(miniMonth > 11) { miniMonth = 0; miniYear++; }
+    renderMiniCalendar();
+});
+
+// --- 8. WYSY£ANIE NOWEGO ZADANIA (POST) ---
+const saveBtn = document.querySelector('.btn-save');
+
+saveBtn.addEventListener('click', async () => {
+    // 1. Zbieramy dane za pomoc¹ ID (czysto, szybko, bezpiecznie)
+    const titleInput = document.getElementById('task-title').value;
+    const descInput = document.getElementById('task-desc').value;
+    const statusSelect = document.getElementById('task-status');
+    const tagSelect = document.getElementById('task-tag');
+    const dateValue = document.getElementById('date-picker-btn').textContent;
+
+    // Pobieramy ID statusu i tagu (wartoœci ukryte w <option value="...">)
+    const statusId = statusSelect.value;
+    const tagId = tagSelect.value;
+    
+    // Z tagu pobieramy te¿ od razu jego kolor, ¿eby wys³aæ go z zadaniem
+    // U¿ywamy selectedOptions[0] aby dobraæ siê do konkretnego, wybranego elementu na liœcie
+    let colorVar = "var(--color-blue)"; // Zabezpieczenie domyœlne
+    if (tagSelect.selectedOptions.length > 0) {
+        colorVar = tagSelect.selectedOptions[0].getAttribute('data-color') || colorVar;
+    }
+
+    // 2. Prosta walidacja frontowa
+    if (titleInput.trim() === "" || dateValue === "Wybierz date...") {
+        alert("Wypelnij tytul i wybierz date!");
+        return;
+    }
+
+    // 3. Budujemy Payload (dane dla Pythona)
+    const payload = {
+        title: titleInput,
+        description: descInput,
+        status_id: parseInt(statusId), // Parsujemy na liczby, bo baza rzadko przyjmuje stringi do kluczy obcych
+        tag_id: parseInt(tagId),
+        colorVar: colorVar, 
+        dueDate: dateValue 
+    };
+
+    // 4. Wys³anie requestu do API
+    try {
+        saveBtn.disabled = true; 
+        saveBtn.textContent = "ZAPISYWANIE...";
+
+        const response = await fetch('/api/tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json' 
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            throw new Error(`B³¹d serwera: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("Sukces! Dodano zadanie:", result);
+
+        // 5. Sprz¹tanie po sukcesie
+        modal.classList.add('hidden');
+        resetTaskForm(); // Wywo³ujemy now¹, czyst¹ funkcjê
+        
+        // Odœwie¿amy listê zadañ, ¿eby nowe zadanie wskoczy³o na ekran
+        fetchTasksForCurrentView();
+
+    } catch (error) {
+        console.error("B³¹d zapisu:", error);
+        alert("Wyst¹pi³ problem z po³¹czeniem z serwerem.");
+    } finally {
+        // Przywracamy guzik do stanu u¿ywalnoœci
+        saveBtn.disabled = false;
+        saveBtn.textContent = "DODAJ ZADANIE";
+    }
+});
+
+// --- 9. £ADOWANIE S£OWNIKÓW DO FORMULARZA (GET - LAZY LOADING) ---
+async function fetchFormDictionaries() {
+    const statusSelect = document.getElementById('task-status');
+    const tagSelect = document.getElementById('task-tag');
+
+    // WZORZEC CACHE: Sprawdzamy, czy dane ju¿ tam s¹.
+    // Jeœli tak, przerywamy funkcjê (return), by nie robiæ zbêdnych zapytañ do API.
+    if (statusSelect.options.length > 0 && tagSelect.options.length > 0) {
+        return;
+    }
+
+    try {
+        // Puszczamy oba zapytania równolegle (Promise.all), ¿eby by³o 2x szybciej
+        const [statusResponse, tagResponse] = await Promise.all([
+            fetch('/api/statuses'),
+            fetch('/api/tags')
+        ]);
+
+        if (statusResponse.ok) {
+            const statuses = await statusResponse.json();
+            statusSelect.innerHTML = statuses.map(s => 
+                `<option value="${s.id}">${s.name}</option>`
+            ).join('');
+        }
+
+        if (tagResponse.ok) {
+            const tags = await tagResponse.json();
+            tagSelect.innerHTML = tags.map(t => 
+                `<option value="${t.id}" data-color="${t.color}">${t.name}</option>`
+            ).join('');
+        }
+    } catch (error) {
+        console.error("B³¹d sieciowy podczas ³adowania s³owników:", error);
+    }
+}
 
 // START APLIKACJI
 fetchDateFromAPI();

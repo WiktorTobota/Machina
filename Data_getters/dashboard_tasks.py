@@ -8,13 +8,13 @@ def get_task_for_dashboard(Year, Month):
     sql = MSSQL()
     sql.connect_db()
 
-    fd = open(r'/home/wiktor/Dokumenty/Programowanie/Machina/Data_getters/sqlki/Zadania na dany dzien.sql', 'r')
+    fd = open(r'Machina/Data_getters/sqlki/Zadania na dany dzien.sql', 'r')
     sqlFile = fd.read()
     fd.close()
 
     sqlFile = sqlFile.replace('%Month', f"'{Month}'")
     sqlFile = sqlFile.replace('%Year', f"'{Year}'")
-    print(sqlFile)
+    #print(sqlFile)
     output = sql.run_query(sqlFile)
     
     tasks = []

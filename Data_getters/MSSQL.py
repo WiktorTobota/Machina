@@ -15,7 +15,6 @@ logging.basicConfig(
 )
 
 
-
 class MSSQL():
     def __init__(self):
         self.driver = config['MSSQL']['driver']

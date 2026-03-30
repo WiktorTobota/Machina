@@ -24,7 +24,7 @@
                 <div class="panel task-panel">
                     <div class="panel-header">
                         <b>ZADANIA</b>
-                        <span style="cursor:pointer; font-size: 20px;">+</span>
+                        <span id="add-task-btn" style="cursor:pointer; font-size: 20px;">+</span>
                     </div>
                     <div class="task-list">
                         
@@ -79,6 +79,60 @@
         </div>
     </div>
 
-    <script src="/static/js/dashboard.js"></script>
+
+
+
+    <div id="task-modal" class="modal-overlay hidden">
+        <div class="modal-content panel">
+            <div class="panel-header" style="margin-bottom: 20px;">
+                <b>DODAJ ZADANIE</b>
+                <span id="close-modal-btn" style="cursor:pointer; font-size: 20px;">&times;</span>
+            </div>
+            
+            <div class="form-group">
+                <label>Tytuł</label>
+                <input type="text" id="task-title" class="form-input" placeholder="Tytuł">
+            </div>
+
+            <div class="form-group">
+                <label>Status</label>
+                <select id="task-status" class="form-input"></select>
+            </div>
+
+            <div class="form-group">
+                <label>Data do</label>
+                <div id="date-picker-btn" class="form-input custom-dropdown">Wybierz datę...</div>
+                
+                <div id="mini-calendar-container" class="mini-calendar hidden">
+                    <div class="calendar-header" style="margin-bottom: 10px;">
+                        <div id="mini-month-year" style="font-size: 14px; font-weight: bold;"></div>
+                        <div class="nav-arrows" style="font-size: 16px;">
+                            <span id="mini-prev">&lt;</span>
+                            <span id="mini-next">&gt;</span>
+                        </div>
+                    </div>
+                    <div class="day-names" style="margin-bottom: 5px; font-size: 12px;">
+                        <div>Pn</div><div>Wt</div><div>Śr</div><div>Cz</div><div>Pt</div><div>So</div><div>Nd</div>
+                    </div>
+                    <div id="mini-calendar-grid" class="calendar-grid" style="gap: 5px; font-size: 12px; grid-auto-rows: 30px;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Tag</label>
+                <select id="task-tag" class="form-input"></select>
+            </div>
+
+            <div class="form-group">
+                <label>Opis</label>
+                <textarea id="task-desc" class="form-input" rows="3" placeholder="Dodatkowe informacje..."></textarea>
+            </div>
+
+            <button class="btn-save">DODAJ ZADANIE</button>
+        </div>
+    </div>
+
+<script src="/static/js/dashboard.js"></script>
 </body>
 </html>

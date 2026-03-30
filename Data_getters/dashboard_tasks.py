@@ -8,7 +8,7 @@ def get_task_for_dashboard(Year, Month):
     sql = MSSQL()
     sql.connect_db()
 
-    fd = open(r'Machina/Data_getters/sqlki/Zadania na dany dzien.sql', 'r')
+    fd = open(r'/home/wiktor/Dokumenty/Programowanie/Machina/Data_getters/sqlki/Zadania_na_dany_dzien.sql', 'r')
     sqlFile = fd.read()
     fd.close()
 

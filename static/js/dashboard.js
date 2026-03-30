@@ -477,17 +477,122 @@ async function fetchFormDictionaries() {
                 `<option value="${s.id}">${s.name}</option>`
             ).join('');
         }
-
         if (tagResponse.ok) {
             const tags = await tagResponse.json();
-            tagSelect.innerHTML = tags.map(t => 
+            const tagSelect = document.getElementById('task-tag');
+            
+            // 1. Zaczynamy od "przycisku" Dodaj nowy tag
+            let optionsHTML = `<option value="ADD_NEW" style="font-weight: bold; color: var(--accent-green);">+ Dodaj nowy tag...</option>`;
+            
+            // 2. Doklejamy resztê tagów z bazy
+            optionsHTML += tags.map(t => 
                 `<option value="${t.id}" data-color="${t.color}">${t.name}</option>`
             ).join('');
+            
+            tagSelect.innerHTML = optionsHTML;
+
+            // 3. Poniewa¿ pierwsza opcja to teraz dodawanie, wymuszamy zaznaczenie pierwszego prawdziwego tagu z bazy (index 1)
+            if (tagSelect.options.length > 1) {
+                tagSelect.selectedIndex = 1;
+            }
         }
     } catch (error) {
         console.error("B³¹d sieciowy podczas ³adowania s³owników:", error);
     }
 }
+
+// --- 11. OBS£UGA DODAWANIA NOWEGO TAGU ---
+const tagSelectElement = document.getElementById('task-tag');
+const newTagContainer = document.getElementById('new-tag-container');
+const newTagNameInput = document.getElementById('new-tag-name');
+const newTagColorInput = document.getElementById('new-tag-color');
+const saveTagBtn = document.getElementById('save-new-tag-btn');
+const cancelTagBtn = document.getElementById('cancel-new-tag-btn');
+
+// 1. Co siê dzieje, gdy u¿ytkownik wybierze z listy "Dodaj nowy tag..."
+tagSelectElement.addEventListener('change', (e) => {
+    if (e.target.value === 'ADD_NEW') {
+        // Chowamy selecta
+        tagSelectElement.classList.add('hidden');
+        
+        // Pokazujemy nasz mini-formularz (wymuszamy display: flex, zeby zignorowalo domyœlne display: none z klasy hidden)
+        newTagContainer.classList.remove('hidden');
+        newTagContainer.style.display = 'flex';
+        
+        // Od razu dajemy fokus na input, ¿eby mo¿na by³o od razu pisaæ
+        newTagNameInput.focus();
+    }
+});
+
+// 2. Co siê dzieje, gdy u¿ytkownik kliknie X (Anuluj)
+cancelTagBtn.addEventListener('click', () => {
+    // Chowamy mini-formularz
+    newTagContainer.classList.add('hidden');
+    newTagContainer.style.display = 'none';
+    
+    // Zwracamy selecta na ekran
+    tagSelectElement.classList.remove('hidden');
+    
+    // Wracamy na pierwsz¹ prawdziw¹ pozycjê (indeks 1), ¿eby nie wisia³o na "Dodaj nowy"
+    if (tagSelectElement.options.length > 1) {
+        tagSelectElement.selectedIndex = 1;
+    }
+    
+    // Czyœcimy inputy z brudnopisów
+    newTagNameInput.value = '';
+    newTagColorInput.value = '#00ff7f';
+});
+
+// 3. Co siê dzieje, gdy u¿ytkownik kliknie ? (Zapisz)
+saveTagBtn.addEventListener('click', async () => {
+    const newName = newTagNameInput.value.trim();
+    const newColor = newTagColorInput.value; // Zwraca zawsze piêkny format hex, np. "#ff0000"
+
+    // Prosta walidacja
+    if (!newName) {
+        alert("Podaj nazwê dla nowego tagu!");
+        return;
+    }
+
+    const payload = {
+        name: newName,
+        color: newColor
+    };
+
+    try {
+        saveTagBtn.disabled = true;
+
+        // Strza³ do Pythona (Twój kod z poprzedniego kroku radzi sobie z tym idealnie)
+        const response = await fetch('/api/tags', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error("B³¹d podczas zapisywania tagu na serwerze");
+
+        const result = await response.json();
+
+        // Tworzymy now¹ opcjê HTML z danymi z bazy
+        const newOption = new Option(result.name, result.id);
+        newOption.setAttribute('data-color', result.color);
+
+        // Dodajemy now¹ opcjê do listy rozwijanej (tu¿ pod przycisk dodawania, ¿eby by³a na górze)
+        tagSelectElement.insertBefore(newOption, tagSelectElement.options[1]);
+
+        // Odpalamy przycisk "Anuluj", który wykona za nas ca³¹ robotê ze schowaniem formularza i czyszczeniem!
+        cancelTagBtn.click();
+        
+        // Ale na sam koniec wymuszamy wybranie tego nowo dodanego tagu
+        tagSelectElement.value = result.id;
+
+    } catch (error) {
+        console.error("B³¹d tworzenia tagu:", error);
+        alert("Nie uda³o siê dodaæ tagu. SprawdŸ serwer.");
+    } finally {
+        saveTagBtn.disabled = false;
+    }
+});
 
 // START APLIKACJI
 fetchDateFromAPI();

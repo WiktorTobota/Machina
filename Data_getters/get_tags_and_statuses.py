@@ -7,7 +7,7 @@ def get_tag_list():
     sql = MSSQL()
     sql.connect_db()
 
-    fd = open(r'Machina/Data_getters/sqlki/tag.sql', 'r')
+    fd = open(r'/home/wiktor/Dokumenty/Programowanie/Machina/Data_getters/sqlki/tag.sql', 'r')
     sqlFile = fd.read()
     fd.close()
 
@@ -27,7 +27,7 @@ def get_status_list():
     sql = MSSQL()
     sql.connect_db()
 
-    fd = open(r'Machina/Data_getters/sqlki/status.sql', 'r')
+    fd = open(r'/home/wiktor/Dokumenty/Programowanie/Machina/Data_getters/sqlki/status.sql', 'r')
     sqlFile = fd.read()
     fd.close()
 
